@@ -1,0 +1,52 @@
+#
+# SAS/C Makefile for AmiGUS WAV playerr
+#
+#
+
+TARGET  = aguswav
+TARGET2 = aguswtab
+
+RM	= delete force quiet
+CC	= sc
+LD      = slink
+#CFLAGS	= INCLUDEDIR=include 
+CFLAGS  = NOVER NOICONS nostackcheck math=standard strmerge strsect=code parameters=regs data=far opt optsize ignore 315
+LDFLAGS	= NOICONS SC SD ND QUIET 
+#LDFLAGS = LIB sc:lib/scmieee.lib LIB sc:lib/sc.lib $(LDFLAGS)
+LDFLAGS = LIB sc:lib/scm.lib LIB sc:lib/sc.lib $(LDFLAGS)
+VASM    = vasmm68k_mot
+VASMFORMAT = -Fhunk -Iinclude: -quiet
+VASMBINFORMAT = -Fbin -Iinclude: -quiet
+
+# debug stuff
+#CFLAGS  = DEFINE DEBUG=1 $(CFLAGS)
+#LDFLAGS = LIB sc:lib/debug.lib $(LDFLAGS)
+
+OBJS	= wav_load.o wav_convert16.o wav_convert24.o stringutils.o
+OBJST1  = main.o $(OBJS) amigus_streamout.o 
+OBJST2  = wmain.o $(OBJS) amigus_wtableout.o
+
+all:	$(TARGET) $(TARGET2)
+
+$(TARGET): $(OBJST1) 
+	$(LD) sc:lib/c.o $(OBJST1) $(LDFLAGS) TO $(TARGET)
+	#LIB sc:lib/scm.lib 
+
+$(TARGET2): $(OBJST2) 
+	$(LD) sc:lib/c.o $(OBJST2) $(LDFLAGS) TO $(TARGET2)
+	#LIB sc:lib/scm.lib 
+
+clean:
+	-$(RM) $(TARGET) $(TARGET2) $(OBJST1) $(OBJST2) #?.lnk
+
+.s.o: $*.s
+	$(VASM) $(VASMFORMAT) $(ASMDEFS) -o $@ $*.s
+
+.s.bin: $*.s
+	$(VASM) $(VASMBINFORMAT) -o $@ $*.s
+
+.c.o:	$*.c
+	$(CC) $(CFLAGS) $*.c NOLINK
+
+# dependencies
+
