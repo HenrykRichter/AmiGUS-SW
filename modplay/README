@@ -1,0 +1,36 @@
+Short:    MOD renderer and player 
+Uploader: Henryk Richter
+Authors:  Henryk Richter
+Version:  0.5
+Requires: OS2.0 (v37)
+
+
+Introduction
+-------------------------------------------------
+
+
+Authors
+-------------------------------------------------
+
+  Henryk Richter <henryk.richter@gmx.net>
+
+
+Acknowledgements
+-------------------------------------------------
+ 
+ PTPlay 3.0B by Tom "Outland" Bech, 
+ Ivar "Heatseeker" J. Olsen, and  
+ Bjarte "Krest" Andreassen of Cryptoburners,
+ based on PT 1.1A by Lars Hamre
+ (optionally incorporated into AmigaOS
+  build of "modplay_eftest" for functional 
+  verification, no bearing on regular builds)
+ 
+
+
+Changelog
+-------------------------------------------------
+
+0.5 
+    - first version of README :-)
+

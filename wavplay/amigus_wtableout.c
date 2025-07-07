@@ -484,11 +484,11 @@ LONG agus_Start_WTableOUT( struct AmiGUS_WTableOut *wo, ULONG fmt, ULONG rate )
 //	wo->board_voice_ctrl = HAGEN_CTRLF_16BIT|HAGEN_CTRLF_LOOP|HAGEN_CTRLF_INTERPOL|HAGEN_CTRLF_PBSTART;
 	wo->board_voice_ctrl = HAGEN_CTRLF_16BIT|HAGEN_CTRLF_LOOP|HAGEN_CTRLF_PBSTART;
 
-	/* 1073741824/192000 = 5592.41 */
+	/* 1073741824/192000 = 5592.405333 */
 	if( rate > 192000 )
 		sample_rate = 0x3FFFFFFF;
 	else
-		sample_rate = (1073741824L/192000L)*rate + ((rate*41L)/100L); /* avoids 32 bit overflow */
+		sample_rate = (1073741824L/192000L)*rate + ((rate*104)>>8); /* avoids 32 bit overflow (104/256=0.406) */
 
 	wo->sample_rate = rate;
 	wo->board_rate  = sample_rate;

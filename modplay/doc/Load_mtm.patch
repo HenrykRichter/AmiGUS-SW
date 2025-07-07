@@ -1,0 +1,25 @@
+206a207,229
+> 				} else if (cmd == 0x0E)
+> 				{
+> 					if((param & 0xF0) == 0x30)
+> 					{
+> 						// E3x is "Glissando / UNSUPPORTED"
+> 						cmd = param = 0;
+> 					} else if((param & 0xF0) == 0x40)
+> 					{
+> 						// E4x is "Set vibr wave / UNSUPPORTED"
+> 						cmd = param = 0;
+> 					} else if((param & 0xF0) == 0x50)
+> 					{
+> 						// E5x is "Set finetune / y = finetune value  settings: Y<8:Y   Y>7:Y-16"
+> 						cmd = param = 0;
+> 					} else if((param & 0xF0) == 0x60)
+> 					{
+> 						// E4x is "Pattern Loop / UNSUPPORTED"
+> 						cmd = param = 0;
+> 					} else if((param & 0xF0) == 0x70)
+> 					{
+> 						// E4x is "Set trem wave / UNSUPPORTED"
+> 						cmd = param = 0;
+> 					}
+

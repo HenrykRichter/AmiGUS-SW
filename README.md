@@ -12,5 +12,11 @@ The latter mode is enabled by the "-24" command line option.
 Secondly, "aguswtab" is another approach that utilizes the Wavetable engine and it's
 interrupts for streaming playback. As of this writing, only 16 bit output is supported.
 
+## modplay
+
+This is a Protracker and S3M player (in C) that can either be compiled as Mod/S3M renderer
+on modern platforms _or_ as player for the AmiGUS. It supports multichannel Protracker clones
+(FastTracker1, TakeTracker, Startrekker 8Voices), as well.
+
 
 

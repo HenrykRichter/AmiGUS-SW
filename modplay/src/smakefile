@@ -1,0 +1,76 @@
+#
+# SAS/C Makefile for picdttest 
+#
+# requires SAS/C installation (including default include path and SC: assign)
+# effect tester also requires vasm (see below for binary and associated include path)
+
+TARGET  = /bin/modplay 
+TARGET2 = /bin/modplay_eftest
+TARGET3 = AGUS_Mod 
+
+RM	= delete force quiet
+CC	= sc
+LD      = slink
+VASM    = vasm
+#VASM    = vasmm68k_mot
+CPU     = 68000
+SYSINC  = include:
+#SYSINC  = sc:include/
+VASMFORMAT = -m$(CPU) -Fhunk -nowarn=2064 -quiet -I$(SYSINC)
+#OPT    = opt optsize
+OPT     = opt opttime optinlocal optinline optsched optpeep optrdep=2 optdep=2 optcomp=3
+NOWARN  = ignore 315 ignore 306
+CFLAGS	= DEF AMIGA NOVER NOICONS nostackcheck math=standard strmerge strsect=code parameters=regs data=far $(OPT) $(NOWARN)
+CFLAGS  = $(CFLAGS) INCLUDEDIR include/
+
+#CFLAGS  = $(CFLAGS) DEFINE LIBNAME=$(TARGET)
+LDFLAGS1 = NOICONS SC SD ND QUIET
+LDFLAGS  = LIB sc:lib/scm.lib LIB sc:lib/sc.lib $(LDFLAGS1)
+#LDFLAGS = LIB sc:lib/amiga.lib LIB sc:lib/scm.lib LIB sc:lib/sc.lib $(LDFLAGS)
+
+MAIN1   = obj/modplay_main.o
+MAIN2   = obj/modplay_eftest.o obj/PTPlay30B.o
+MAIN3   = obj/epheader.o obj/modplay_ep.o
+COREOB  = obj/modplay.o obj/modplay_protracker.o obj/modplay_s3m.o
+OBJS	= $(COREOB) obj/modrender_amigus.o
+OBJST   = $(COREOB) obj/modrender_stream.o
+#obj/modrender_stream.o
+
+BUILDDEPS = modplay.h modplay_tables.h types.h fileio.h compiler.h
+
+all:	$(TARGET) $(TARGET2) $(TARGET3)
+
+$(TARGET): $(MAIN1) $(OBJS) 
+	$(LD) SC:lib/c.o $(MAIN1) $(OBJS) $(LDFLAGS) TO $(TARGET)
+
+$(TARGET2): $(MAIN2) $(OBJST) 
+	$(LD) SC:lib/c.o $(MAIN2) $(OBJST) $(LDFLAGS) TO $(TARGET2)
+
+$(TARGET3): $(MAIN3) $(OBJS) 
+	$(LD) $(MAIN3) $(OBJS) $(LDFLAGS) TO $(TARGET3)
+
+
+
+$(TARGET2): $(OBJS)
+
+clean:
+	-$(RM) $(TARGET) $(TARGET2) $(TARGET3) $(MAIN1) $(MAIN2) $(MAIN3) $(OBJS) #?.lnk
+
+.c.o: $(BUILDDEPS) $*.c
+      $(CC) $(CFLAGS) OBJECTNAME $@ $*.c
+
+.s.o: $(BUILDDEPS) $*.s
+        $(VASM) $(VASMFORMAT) $(ASMDEFS) -o $@ $*.s
+
+# dependencies
+obj/epheader.o: epheader.c
+obj/modplay_ep.o: modplay_ep.c $(BUILDDEPS)
+obj/modplay_eftest.o: modplay_eftest.c $(BUILDDEPS)
+obj/PTPlay30B.o: PTPlay30B.s
+obj/modrender_stream.o: modrender_stream.c $(BUILDDEPS)
+obj/modrender_amigus.o: modrender_amigus.c $(BUILDDEPS)
+obj/modplay_main.o: modplay_main.c $(BUILDDEPS)
+obj/modplay.o: modplay.c $(BUILDDEPS)
+obj/modplay_protracker.o: modplay_protracker.c modplay_protracker.h $(BUILDDEPS)
+obj/modplay_s3m.o: modplay_s3m.c modplay_s3m.h $(BUILDDEPS)
+
