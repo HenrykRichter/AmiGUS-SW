@@ -17,9 +17,12 @@
 #include "fileio.h"
 #include "modplay.h"
 #include "modrender_common.h"
+#include "amigus_registers.h"
 #include <misc/EaglePlayer.h>
 #include <proto/exec.h>
 #include <proto/dos.h>
+#include <proto/expansion.h>
+#include <libraries/configvars.h>
 
 
 #if 0
@@ -107,6 +110,7 @@ struct TagItem plugin_tags[] = {
 struct ExecBase *SysBase = (0);
 struct DosLibrary *DOSBase = (0);
 struct EaglePlayerGlobals *EPBase = (0);
+struct ConfigDev *AmiGUS_Board = (0);
 struct {
    struct EP_Patterninfo pi;
    APTR                  stripes[32];
@@ -126,6 +130,7 @@ struct MODRender *mrnd = (0);
 
 /* strings */
 const UBYTE name_str[] = "AGUS_Mod";
+const UBYTE ver_str[] = "$VER: AGUS_Mod 0.8 (18.7.2025) by Henryk Richter";
 const UBYTE creator_str[] = "Protracker + similar and S3M player\nfor AmiGUS (C) Henryk Richter";
 struct {
 	ULONG  id;
@@ -147,7 +152,7 @@ ASM LONG _CheckFunc( ASMR(a1) struct EaglePlayerGlobals *__EPBase ASMREG(a1) )
  struct EaglePlayerGlobals *EPBase = __EPBase; /* use EPBase from trampoline (in this example) */
 
 	/* better be safe: don't accept anything until we're configured */
-	if( !DOSBase )
+	if( !AmiGUS_Board )
 		return -1;
  
 	mod_songsz = mod_check( EPBase->dt.ChkData, EPBase->dt.ChkSize );
@@ -162,6 +167,8 @@ ULONG CheckFunc[3] = { 0x224D4EB9,(ULONG)_CheckFunc,0x4A804E75}; /* move.l a5,a1
 
 ASM LONG _ConfigFunc( ASMR(a1) struct EaglePlayerGlobals *_EPBase ASMREG(a1) )
 {
+	struct Library *ExpansionBase;
+
 	if( DOSBase )
 		return 0;
 
@@ -171,6 +178,13 @@ ASM LONG _ConfigFunc( ASMR(a1) struct EaglePlayerGlobals *_EPBase ASMREG(a1) )
 	DOSBase = (struct DosLibrary*)EPBase->dt.DOSBase;
 	//DOSBase = (struct DosLibrary *)OpenLibrary( (STRPTR)"dos.library", 37 );
 
+	/* check if we actually have an AmiGUS */
+	ExpansionBase = OpenLibrary( (STRPTR)"expansion.library", 34 ); /* 1.3+ */
+	if( ExpansionBase ) /* shouldn't fail */
+	{
+	   AmiGUS_Board = FindConfigDev( NULL, AMIGUS_MANUFACTURER_ID, AMIGUS_HAGEN_PRODUCT_ID );
+	   CloseLibrary( ExpansionBase );
+	}
 
 	return 0;
 }
@@ -237,7 +251,40 @@ ASM LONG _InitPlayerFunc( ASMR(a1) struct EaglePlayerGlobals *EPBase ASMREG(a1) 
 	/*                                    */
 	mrnd = modrender_init( mod, srate, 0 );
 	if( !mrnd )
+	{
+		/* could not get an instance but a driver is registered:
+		 * can't be us */
+		if( AmiGUS_Board->cd_Driver )
+		{
+		  void (*TextReqFunc)(void) = (void (*)(void))EPBase->EPG_TextRequest;
+		  struct Node *drv = (struct Node*)AmiGUS_Board->cd_Driver;
+		  ULONG args[4];
+
+		  args[0] = (ULONG)drv->ln_Name;
+		  /*
+			*-------------------------------- TextRequest ------------------------------*
+			*----   ARG1 = TextAdresse                                              ----*
+			*----   ARG2 = Pointer to Pubscreenname (only Kick2.0)                  ----*
+			*----   ARG3 = Position on Screen (x.w & y.w)                           ----*
+			*----   ARG4 = Pointer to Gadgetnames                                   ----*
+			*----   ARG5 = Pointer to Requestername                                 ----*
+			*----   ARG6 = Pointer to ArgumentListe                                 ----*
+			*----   ARG7 = Pointer to ImageDatas                                    ----*
+			*----   ARG8 = Flags            EPTRF_Center...                         ----*
+			*----                           EPTRF_TestTimeOut                       ----*
+		  */
+		  EPBase->EPG_ARG1 = (ULONG)"Error! Cannot allocate AmiGUS Wavetable Engine\nThe  Wavetable is in use by\n%s\nPlease quit the other program.";
+		  EPBase->EPG_ARG2 = (ULONG)EPBase->EPG_PubScreen;
+		  EPBase->EPG_ARG3 = 0;
+		  EPBase->EPG_ARG4 = (ULONG)"OK";
+		  EPBase->EPG_ARG5 = (ULONG)name_str;
+		  EPBase->EPG_ARG6 = (ULONG)args;
+		  EPBase->EPG_ARG7 = 0;
+		  EPBase->EPG_ARG8 = 0;
+		  TextReqFunc();
+		}
         	break;
+	}
 
 	for( i = 0, foff = 0 ; i < mod->maxsamples ; i++ )
 	{

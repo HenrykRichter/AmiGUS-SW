@@ -49,7 +49,7 @@
 #define	EP_StructEnd	  (EP_TagBase+9)	/* Free Struct (e.g. Free allocated Mem) */
 #define	EP_LoadPlConfig	  (EP_TagBase+10)	/* Load Config of Player */
 #define	EP_SavePlConfig	  (EP_TagBase+11)	/* Save Config of Player */
-#define	EP_GetPositionNr  (EP_TagBase+12	/* return Patternnumber (in D0).l) */
+#define	EP_GetPositionNr  (EP_TagBase+12)	/* return Patternnumber (in D0).l) */
 #define	EP_SetSpeed	  (EP_TagBase+13)	/* Set Speed (for Players with own Timer) */
 					/* Value submitted in D0 */
 #define	EP_Flags	  (EP_TagBase+14)	/* see below */
@@ -161,7 +161,7 @@
 #define	MI_Steps		 (MI_TagBase+7)	/* Steps (SoundMon) */
 #define	MI_MaxSteps		 (MI_TagBase+8)	/* Max Steps */
 #define	MI_Samples		 (MI_TagBase+9)	/* Number of used Samples */
-#define	MI_MaxSamples		 (MI_TagBase+10	/* Max Samples (SoundTr 31)) */
+#define	MI_MaxSamples		 (MI_TagBase+10)	/* Max Samples (SoundTr 31)) */
 #define	MI_SynthSamples		 (MI_TagBase+11)	/* Number of used SynthSamples */
 #define	MI_MaxSynthSamples	 (MI_TagBase+12)	/* Max SynthSamples */
 #define	MI_Songsize		 (MI_TagBase+13)	/* Songsize in Bytes */

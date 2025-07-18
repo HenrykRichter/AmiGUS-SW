@@ -1,4 +1,16 @@
-
+/*
+; File:   support.c
+;
+; Author: Henryk Richter <henryk.richter@gmx.net>
+;
+; Purpose:
+;  These are custom implementations of multiply/divide functions
+;  that are referenced by GNU C with 68000 code and 32 bit mul/div.
+;  While the gcc library functions work fine, this implementation was
+;  done to build binaries without linking startup code and/or external
+;  libraries.
+;
+*/
 #ifdef AMIGA
 
 
