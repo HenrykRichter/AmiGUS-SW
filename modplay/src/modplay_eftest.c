@@ -15,6 +15,10 @@
 #include "fileio.h"
 #include <stdio.h>
 #include "PTPlay30B.h"
+#include "misc/Eagleplayer.h"
+#ifdef AMIGA
+#include <proto/exec.h>
+#endif
 
 FH_T Wavwrite_Open( STRPTR fname, LONG rate, LONG nchannels );
 LONG Wavwrite_Write( FH_T file, UBYTE *buf, LONG bytes );   /* write a block of bytes (assuming LE endianess) */
@@ -35,6 +39,8 @@ int main(int argc, char **argv )
   struct MODRender *mrnd;
   LONG srate = 44100;
   LONG obs;
+  
+//  printf("Sizeof EP_Patterninfo %ld\n",sizeof(struct EP_Patterninfo));
 
   ifile = FILE_OPEN_R( argv[1] );
   if( ifile )
@@ -149,6 +155,8 @@ int main(int argc, char **argv )
 
    if( wavfile )
    	printf("have a wav file\n");
+   else	printf("Cannot open wav file, aborting\n");
+   
 #if 1
    /* init done, now play something */
    if( (wavfile) && (obuf) )
@@ -166,9 +174,20 @@ int main(int argc, char **argv )
 	PT_SetDryRun( 1 );   /* don't bang hardware */
 	PT_InitMusic( buf ); /* init Protracker player (the real one :-) */
 
+#ifdef AMIGA
+	SetSignal(0L,SIGBREAKF_CTRL_C);
+#endif
+
 	//ct = 0;
 	while( (ptime_ms < 300000) && !(mod->flags & MODPF_SONGEND) )// 30000 )
 	{
+#ifdef AMIGA
+		if( SetSignal(0L,SIGBREAKF_CTRL_C) & SIGBREAKF_CTRL_C )
+		{
+			printf("Abort, Ptime_ms %ld\n",ptime_ms);
+			break;
+		}
+#endif
 		//ct++;
 		time_10us = mod_playinterval( mod );
 		//printf("t10us %ld\n",time_10us);
@@ -490,3 +509,11 @@ void Wavwrite_Close( FH_T wf )
 }
 
 
+#ifdef __SASC
+void __regargs __chkabort(void)
+{}
+/* 
+ASM void __regargs _XCEXIT(void)
+{}
+*/
+#endif

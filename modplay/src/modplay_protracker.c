@@ -8,7 +8,7 @@
 #include "modplay_tables.h" /* PT_Vibrato_Tab[32], MTM_FineTune_Tab_,PT_FineTune_Tab_ */
 
 /* debug printf */
-#if 0 
+#if 0
 #include <stdio.h>
 #define D(_x_)  printf _x_
 #define D2(_x_) printf _x_
@@ -21,9 +21,23 @@
 #define DP(_x_) 
 #endif
 
+/* this is the actual mod ID */
+struct pro_quirkslist {
+	UBYTE songlen;
+	UBYTE npat;
+	ULONG crc32;
+};
+
 /* local proto */
+
 LONG mod_pt_loadpatterns( struct MOD *mod, UBYTE *buf );
 
+ULONG crc32( UBYTE * buf, ULONG len );
+void  make_crc32_table(void);
+
+int mod_id( unsigned char*mod, long length, struct pro_quirkslist *id );
+ULONG mod_quirkcheck( struct pro_quirkslist *id, struct pro_quirkslist *quirkstab );
+extern struct pro_quirkslist Pro_QuirksVBL[];
 
 /* check if we have a ProTracker mod or maybe some relative */
 /* in:  mod     - mod structure to store nchannels in (if successful), NULL is ok/checked 
@@ -341,6 +355,27 @@ struct MOD *mod_pt_init(struct MOD *mod, UBYTE *buf, LONG bufsize, ULONG flags, 
 	return mod_free( mod );
   }
 
+  /* determine possible quirks in the mod (like VBL) */
+  while( (mod->modtype ==  MOD_ID_M_K_) ||
+         (mod->modtype ==  MOD_ID_MIKI) ||
+         (mod->modtype ==  MOD_ID_FLT4) )
+  {
+   struct pro_quirkslist id;
+
+   if( mod_id( buf, bufsize, &id ) <= 0 )
+   	break; /* ID not computed/possible */
+
+   D(("ModID 0x%02lx%02lx,0x%08lx\n",(ULONG)id.songlen,(ULONG)id.npat,(ULONG)id.crc32));
+   
+   /* now check quirks table for VBL modules */
+   if( mod_quirkcheck( &id, Pro_QuirksVBL ) )
+   {
+	mod->flags |= MODPF_VBLANK;
+   }
+   //return mod_free( mod );
+   break;
+  }
+
   /* reinit: clear songpos,patpos,patdelay,skiptopos */
   mod->tick     = 0;
   mod->songpos  = 0;
@@ -352,6 +387,7 @@ struct MOD *mod_pt_init(struct MOD *mod, UBYTE *buf, LONG bufsize, ULONG flags, 
 
   mod->interval = 250000UL/(UWORD)(mod->ciaspeed); /* time increment in 10us units */
   *fileoffset   = sz; /* byte offset in file of the first sample */
+
 
   return mod;
 }
@@ -366,7 +402,7 @@ struct MOD *mod_pt_init(struct MOD *mod, UBYTE *buf, LONG bufsize, ULONG flags, 
 */
 LONG mod_pt_loadpatterns( struct MOD *mod, UBYTE *buf )
 {
- int i,j;
+ int i;//,j;
  struct MODPattern **mp,*pat;//,*tmppat;
  struct MODPatternEntry *patdta;
  UBYTE *curbuf;
@@ -555,5 +591,173 @@ LONG mod_pt_loadpatterns( struct MOD *mod, UBYTE *buf )
 
  return mod->npat;
 }
+
+
+
+struct pro_quirkslist Pro_QuirksVBL[] = {
+{0x49,0x3f,0x51935d78},  // Jogeir Face Another Day (M!K! version)
+{0x48,0x3D,0xACD807C8},  // Jogeir Face Another Day II 
+//{0x5a,0x30,0xdc4f750c},  // mod.turbo-house (RaveBusters) <- actually CIA timing
+{0x31,0x25,0x144a088b},  // MOD.3-part-introtune	
+{0x10,0x0f,0x5ecb925f},  // MOD.To raw_intro #1
+{0x49,0x3f,0x46c4d80f},  // MOD.face another day
+{0x55,0x2e,0x9dcbed64},  // MOD.fantasy realm
+{0x39,0x2c,0xacdbbab5},  // MOD.future-rebellion.md
+{0x29,0x28,0x3bc9cb05},  // MOD.guitar slinger
+{0x45,0x32,0x4aaecbad},  // MOD.i'm all right.md
+{0x27,0x1e,0xdacdd18f},  // MOD.jumping danceshoes
+{0x14,0x0d,0xdb1265c0},  // MOD.spring dreams
+{0x6d,0x3f,0x43543e81},  // MOD.tubu-bells.md
+{0x39,0x29,0x56a83002},  // MOD.vapour-highway.md
+{0x48,0x3d,0xacd807c8},  // face another day ii.mod	
+{0x5d,0x3f,0x38829a18},  // klisje paa klisje.mod
+{0x36,0x2d,0xef648a66},  // ledstorm.mod
+{0x22,0x1a,0xb2957c41},  // lonely wolf.mod
+{0x33,0x32,0x9cb2aa18},  // mixified.mod
+{0x21,0x1d,0xf08f467e},  // mystified.mod
+{0x44,0x3d,0x4436ae16},  // out of silence.mod
+{0x1c,0x19,0x88540225},  // overture.mod	
+{0x3f,0x3c,0xc3cf23de},  // slow-motion.mod
+{0x29,0x20,0x8f241e24},  // spiritual freedom.mod
+{0x2f,0x24,0x1341eb4a},  // techdust.mod
+{0x33,0x2f,0x50e1b75e},  // the wanderer.mod                                    
+{0,0,0}
+};
+
+ULONG mod_quirkcheck( struct pro_quirkslist *id, struct pro_quirkslist *quirkstab )
+{
+	ULONG ret = 0;
+
+	while( quirkstab->songlen != 0 )
+	{
+	   if( quirkstab->songlen == id->songlen )
+	   {
+	   	if( quirkstab->npat == id->npat )
+	   		if( quirkstab->crc32 ==	id->crc32 )
+	   		{
+	   			ret = 1;
+	   			break;
+	   		}
+	   }
+	   quirkstab++;
+	}
+
+	return ret;
+}
+
+int mod_id( unsigned char*mod, long length, struct pro_quirkslist *id )
+{
+	int ret = 0;
+	int songlen,npatt,i;
+	unsigned long crc;
+
+ do
+ {
+	/* gather song length and number of patterns */
+	songlen = mod[0x3b6];
+
+	for( i=0,npatt=0 ; i<128; i++ )
+		if( mod[0x3b8+i] > npatt )
+			npatt = mod[0x3b8+i];
+
+	id->songlen = songlen;
+	id->npat    = npatt;
+
+	crc = crc32( &mod[0x43C] , npatt<<10 );
+
+	id->crc32   = crc;
+
+	ret = 1;
+ }
+ while(0);
+
+ return ret;
+}
+
+
+ULONG crc32_tab[256];
+LONG  crc32_tabinit=0;
+
+/* CRC32 with Poly 0xedb88320, from zlib */
+void make_crc32_table()
+{
+ ULONG c,n,k;
+ ULONG poly = 0xedb88320;
+
+ for( n = 0; n < 256; n++ )
+ {
+    c = n;
+    for( k = 0; k < 8; k++ )
+       c = (c & 1) ? poly ^ (c >> 1) : (c >> 1);
+    crc32_tab[n] = c;
+ }
+ crc32_tabinit=1;
+}
+
+ULONG do_crc32( ULONG crc, UBYTE *buf, LONG len )
+{
+	/* this is actually thread-safe */
+	if( !crc32_tabinit )
+	{
+		make_crc32_table();
+	}
+
+	crc = crc ^ 0xffffffff;
+
+	while( len-- > 0 )
+		crc = crc32_tab[ ( crc ^ *buf++) & 0xff ] ^ (crc>>8);
+
+	return crc ^ 0xffffffff;
+}
+
+/*
+  purpose: calculate CRC32 on a given buffer, including initialization and finalization
+  input:   buffer as byte string
+           length of buffer in bytes
+  output:  CRC32 (Ethernet, HDLC, V.42, SATA, ... )
+  
+*/
+ULONG crc32( UBYTE * buf, ULONG len )
+{
+ ULONG ci,cr,i;
+
+ ci = do_crc32( 0, buf, len );
+
+ /* modid uses the reversed poly without invert, 
+    hence bit mirror result and toggle bits
+ */
+ //D(("CI %08lx\n",ci));
+ for(i=0,cr=0;i<32; i++ )
+ {
+	cr = ((cr<<1)|(ci&1))^1;
+	ci>>=1;
+ }
+ //D(("CR %08lx\n",cr));
+
+ return cr;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 

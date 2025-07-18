@@ -25,36 +25,39 @@ CFLAGS  = $(CFLAGS) INCLUDEDIR include/
 
 #CFLAGS  = $(CFLAGS) DEFINE LIBNAME=$(TARGET)
 LDFLAGS1 = NOICONS SC SD ND QUIET
-LDFLAGS  = LIB sc:lib/scm.lib LIB sc:lib/sc.lib $(LDFLAGS1)
+LDFLAGS  = $(LDFLAGS1)
+STDLIBS  = LIB sc:lib/scm.lib LIB sc:lib/sc.lib
+#LDFLAGS  = $(STDLIBS) $(LDFLAGS1)
 #LDFLAGS = LIB sc:lib/amiga.lib LIB sc:lib/scm.lib LIB sc:lib/sc.lib $(LDFLAGS)
 
 MAIN1   = obj/modplay_main.o
 MAIN2   = obj/modplay_eftest.o obj/PTPlay30B.o
 MAIN3   = obj/epheader.o obj/modplay_ep.o
-COREOB  = obj/modplay.o obj/modplay_protracker.o obj/modplay_s3m.o
-OBJS	= $(COREOB) obj/modrender_amigus.o
-OBJST   = $(COREOB) obj/modrender_stream.o
-#obj/modrender_stream.o
+OBJS    = obj/modplay_protracker.o obj/modplay_s3m.o obj/modplay_oktalyzer.o
+OBJS1   = $(OBJS) obj/modrender_stream.o obj/modplay.o 
+OBJS	= $(OBJS) obj/modplay.o obj/modrender_amigus.o
+
 
 BUILDDEPS = modplay.h modplay_tables.h types.h fileio.h compiler.h
 
 all:	$(TARGET) $(TARGET2) $(TARGET3)
 
 $(TARGET): $(MAIN1) $(OBJS) 
-	$(LD) SC:lib/c.o $(MAIN1) $(OBJS) $(LDFLAGS) TO $(TARGET)
+	$(LD) SC:lib/c.o $(MAIN1) $(OBJS) $(LDFLAGS) $(STDLIBS) TO $(TARGET)
 
-$(TARGET2): $(MAIN2) $(OBJST) 
-	$(LD) SC:lib/c.o $(MAIN2) $(OBJST) $(LDFLAGS) TO $(TARGET2)
+$(TARGET2): $(MAIN2) $(OBJS1) 
+	$(LD) SC:lib/c.o $(MAIN2) $(OBJS1) $(LDFLAGS) $(STDLIBS) TO $(TARGET2)
 
-$(TARGET3): $(MAIN3) $(OBJS) 
-	$(LD) $(MAIN3) $(OBJS) $(LDFLAGS) TO $(TARGET3)
+$(TARGET3): $(MAIN3) $(OBJS) obj/patternscroll_convert.o obj/supporta.o
+	$(LD) $(MAIN3) $(OBJS) obj/patternscroll_convert.o obj/supporta.o $(LDFLAGS) TO $(TARGET3)
 
 
 
 $(TARGET2): $(OBJS)
 
 clean:
-	-$(RM) $(TARGET) $(TARGET2) $(TARGET3) $(MAIN1) $(MAIN2) $(MAIN3) $(OBJS) #?.lnk
+	-$(RM) $(TARGET) $(TARGET2) $(TARGET3) $(MAIN1) $(MAIN2) $(MAIN3) $(OBJS)  #?.lnk
+	-$(RM) obj/patternscroll_convert.o obj/modrender_stream.o obj/support.o
 
 .c.o: $(BUILDDEPS) $*.c
       $(CC) $(CFLAGS) OBJECTNAME $@ $*.c
@@ -62,15 +65,20 @@ clean:
 .s.o: $(BUILDDEPS) $*.s
         $(VASM) $(VASMFORMAT) $(ASMDEFS) -o $@ $*.s
 
+.asm.o: $(BUILDDEPS) $*.asm
+        $(VASM) $(VASMFORMAT) $(ASMDEFS) -o $@ $*.asm
+
 # dependencies
 obj/epheader.o: epheader.c
 obj/modplay_ep.o: modplay_ep.c $(BUILDDEPS)
 obj/modplay_eftest.o: modplay_eftest.c $(BUILDDEPS)
 obj/PTPlay30B.o: PTPlay30B.s
+obj/supporta.o: supporta.asm
+obj/patternscroll_convert.o: patternscroll_convert.asm
 obj/modrender_stream.o: modrender_stream.c $(BUILDDEPS)
 obj/modrender_amigus.o: modrender_amigus.c $(BUILDDEPS)
 obj/modplay_main.o: modplay_main.c $(BUILDDEPS)
 obj/modplay.o: modplay.c $(BUILDDEPS)
 obj/modplay_protracker.o: modplay_protracker.c modplay_protracker.h $(BUILDDEPS)
 obj/modplay_s3m.o: modplay_s3m.c modplay_s3m.h $(BUILDDEPS)
-
+obj/modplay_oktalyzer.o: modplay_oktalyzer.c modplay_oktalyzer.h $(BUILDDEPS)

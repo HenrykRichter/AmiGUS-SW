@@ -14,15 +14,16 @@
   - FX_PT_E8_KARPLUSSTRONG (PT3.0, not in PT2.3)
 
 */
+#define ARP_QUIRK_FIX
 #define MODPLAY_MAIN
 #include "modplay.h"
 #include "modplay_tables.h" /* PT_Vibrato_Tab[32], MTM_FineTune_Tab_,PT_FineTune_Tab_ */
 #include "modplay_protracker.h"
 #include "modplay_s3m.h"
+#include "modplay_oktalyzer.h"
 #include <stdio.h>
 
 /* local proto */
-//LONG mod_check_pt_internal( struct MOD *mod, UBYTE *buf, LONG bufsize );
 struct MOD *mod_pt_init(struct MOD *mod, UBYTE *buf, LONG bufsize, ULONG flags, LONG *fileoffset );
 
 LONG Period_Finetuned( struct ModPeriodTab *tab, ULONG per, LONG ft );
@@ -37,6 +38,11 @@ LONG mod_check_internal( struct MOD *mod, UBYTE *buf, LONG bufsize )
   ret = mod_check_pt_internal( mod, buf, bufsize );
   if( ret > 0 )
   	return ret;
+
+  /* Oktalyzer */
+  ret = mod_check_ok_internal( mod, buf, bufsize );
+  if( ret > 0 )
+	return ret;
 
   return mod_check_s3m_internal( mod, buf, bufsize );
 }
@@ -141,6 +147,11 @@ struct MOD *mod_init( UBYTE *buf, LONG bufsize, ULONG flags, LONG *fileoffset )
   if( mod->modtype == MOD_ID_S3M )
   {
 	return mod_s3m_init( mod, buf, bufsize, flags, fileoffset );
+  }
+
+  if( mod->mode == MOD_MODE_OKT )
+  {
+	return mod_ok_init( mod, buf, bufsize, flags, fileoffset );
   }
 
   /* basic setup done, now load relevant information and pattern data,
@@ -318,7 +329,18 @@ LONG mod_numbytes_of_sample( struct MOD *mod, LONG idx, ULONG *fileoffset )
   return ret;
 }
 
+#ifdef AMIGA
+LONG mod_SetPatScrollCallback( struct MOD *mod, ASM void (*func)(ASMR(a1) struct MOD *mod ASMREG(a1)))
+#else
+LONG mod_SetPatScrollCallback( struct MOD *mod, ASM void (*func)(struct MOD *mod))
+#endif
+{
+	if( !mod )
+		return -1;
 
+	mod->patscroll_callback = func;
+	return 0;
+}
 
 /* provide End-of-Song callback  
  *
@@ -425,7 +447,16 @@ LONG Period_Offset_Finetuned( struct ModPeriodTab *tab, ULONG per, LONG delta, L
 
   idx += delta;
   if( idx > tab->ptable_maxidx ) /* 35UL for PT */
+#ifdef ARP_QUIRK_FIX
+  {
+	/* PT curiosity: if ARP Delta overflows the legal table, it is not clamped but grabs the period from the next Finetune position */
+	idx -= (tab->ptable_maxidx+2);
+	if( tab->ptables[ (ft+1) & tab->ptable_idxmask] )
+		tabft = tab->ptables[ (ft+1) & tab->ptable_idxmask];
+  }
+#else
   	idx = tab->ptable_maxidx;
+#endif /* ARP_QUIRK_FIX */
 
   return tabft[idx];
 
@@ -506,6 +537,9 @@ void mod_playnote( struct MOD* mod )
 	}
 	return;
   }
+
+  if( mod->patscroll_callback )
+	  mod->patscroll_callback( mod );
 
   channels = mod->channels;
   samples  = mod->samples;
@@ -596,7 +630,8 @@ void mod_playnote( struct MOD* mod )
 	/* new sample ? */
 	if( (smpnum > 0) && (smpnum <= mod->maxsamples ) )
 	{
-		chn->flags |= MODCHF_SMPLCHANGE;
+		chn->flags |= (MODCHF_SMPLCHANGE|MODCHF_VOLCHANGE);
+
 		if( per )
 		{
 			chn->delaysample = -1;
@@ -661,7 +696,7 @@ void mod_playnote( struct MOD* mod )
 				chn->period = per;
 		}
 
-		if( s )
+//		if( s )
 		{
 			sample_pos13 = 0; /* restart sample */
 			chn->smp_note   = chn->sample;
@@ -822,7 +857,7 @@ void mod_playnote( struct MOD* mod )
 		fxdat <<= 8;
 		if( !fxdat ) fxdat = chn->old_samplepos;
 		if( !s ) fxdat += chn->old_samplepos;
-		chn->old_samplepos = fxdat;
+		chn->old_samplepos = fxdat; // offset in bytes as direct offset
 		sample_pos13 = fxdat<<13;
 		
 		break;

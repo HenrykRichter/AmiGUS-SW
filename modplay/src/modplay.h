@@ -20,7 +20,7 @@
 /* operating modes (planned, not implemented) */
 #define MOD_MODE_PT	1	/* Noisetracker / ProTracker */
 #define MOD_MODE_PCPT   2	/* PT but extended period range (Fast,xCHN,...) */
-#define MOD_MODE_OCT	3	/* Octalyzer */
+#define MOD_MODE_OKT	3	/* Oktalyzer */
 #define MOD_MODE_MED	4	/* MED, OcataMED */
 #define MOD_MODE_FT2	5	/* FastTracker II XM */
 #define MOD_MODE_S3M	6	/* ScreamTracker3 */
@@ -233,7 +233,15 @@ struct MODPatternEntry
 #define FX_S3M_V_GVOLUME      (FX_S3M_BASE+0x90) /* TODO */
 #define FX_S3M_D_VOLSLIDE     (FX_S3M_BASE+0xA0) 
 
-#define FX_MAX_DEFINED FX_S3M_D_VOLSLIDE /* TODO: adjust with changes to FX list */
+#define FX_OK_BASE            (FX_S3M_BASE+0x50)
+#define FX_OK_11_ARP4	      (FX_OK_BASE+0x0B)  /* TODO */
+#define FX_OK_12_ARP5         (FX_OK_BASE+0x0C)  /* TODO */
+#define FX_OK_13_NOTEDOWN     (FX_OK_BASE+0x0D)  /* TODO */
+#define FX_OK_17_NOTEUP       (FX_OK_BASE+0x11)  /* TODO */
+#define FX_OK_21_NOTEDOWNSLOW (FX_OK_BASE+0x15)  /* TODO */
+#define FX_OK_30_NOTEUPSLOW   (FX_OK_BASE+0x1E)  /* TODO */
+
+#define FX_MAX_DEFINED FX_OK_30_NOTEUPSLOW /* TODO: adjust with changes to FX list */
 
 /* 4-8 channels (PT,ST,Fast,Take,...) */
 struct MODPattern
@@ -283,8 +291,10 @@ struct MOD
 
 #ifdef AMIGA
 	ASM void (*songend_callback)(ASMR(a1) struct MOD *mod ASMREG(a1));
+	ASM void (*patscroll_callback)(ASMR(a1) struct MOD *mod ASMREG(a1));
 #else
 	void (*songend_callback)(struct MOD *mod );
+	void (*patscroll_callback)(struct MOD *mod );
 #endif
 
 	/* debug */
@@ -409,5 +419,12 @@ LONG mod_setendcallback( struct MOD *mod, ASM void (*func)(ASMR(a1) struct MOD *
 #else
 LONG mod_setendcallback( struct MOD *mod, ASM void (*func)(struct MOD *mod));
 #endif
+
+#ifdef AMIGA
+LONG mod_SetPatScrollCallback( struct MOD *mod, ASM void (*func)(ASMR(a1) struct MOD *mod ASMREG(a1)));
+#else
+LONG mod_SetPatScrollCallback( struct MOD *mod, ASM void (*func)(struct MOD *mod));
+#endif
+
 
 #endif /* _INC_MODPLAY_H_ */

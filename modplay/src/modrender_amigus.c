@@ -324,7 +324,8 @@ void modrender_amigus_updateregs(struct MODRender *rnd)
    struct MOD *mod = rnd->mod;
    LONG nchan = mod->nchannels;
    LONG i,idx;
-   ULONG l,ctrl,per;
+   ULONG ctrl,per;
+ //ULONG l;
    struct MODChannel **channels,*chn;
    struct MODSample *smp;
    struct AmiGUS_Hagen_Regs *board = rnd->board_base;
@@ -379,7 +380,12 @@ void modrender_amigus_updateregs(struct MODRender *rnd)
 			{
 				D(("v0 %1ld strt %ld ",i,(ULONG)smp->SDRAM_LOC));
 #ifdef LOOP_WRKAROUND
-				board->VOICE_PSTRT = (ULONG)smp->SDRAM_LOC;
+				if( chn->sample_pos13 > 0 )
+				{
+					board->VOICE_PSTRT = (ULONG)(smp->SDRAM_LOC) + (chn->sample_pos13>>13);
+				}
+				else
+					board->VOICE_PSTRT = (ULONG)smp->SDRAM_LOC;
 				board->VOICE_PLOOP = (ULONG)smp->SDRAM_REPPTR; /* this will be padded towards end of sample if smp->repeat == 0 */
 				board->VOICE_PEND  = (ULONG)smp->SDRAM_ENDPTR;
 

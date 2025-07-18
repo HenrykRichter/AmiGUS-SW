@@ -1,19 +1,22 @@
 # buildAMIGA = "1" enables cross compiling for Amiga binaries
-buildAMIGA = 0
+buildAMIGA = 1
 # buildAGUS = "1" includes AmiGUS player in "modplay" instead of the WAV renderer core
 buildAGUS = 0
 
 ifeq ($(buildAMIGA),1)
 
 CC = m68k-amigaos-gcc 
-CPU = -m68020
+CPU = -m68000
 WARN = -Wall
 OPT = -noixemul -mregparm=4 -fomit-frame-pointer -msoft-float -O2 -Iinclude/
-#DEBUG = -g
+#DEBUG = -g -DDEBUG
 DEF  = -DAMIGA
 DEF += -DUSE_INLINE_STDARG
 CFLAGS = $(CPU) $(WARN) $(OPT) $(DEBUG) $(DEF) -noixemul
-LIBS = -lm
+#LIBS = -lm
+LIBS =
+VASM = vasmm68k_mot
+VASMFORMAT = -Fhunk -quiet -I$(PREFX)/os-include
 
 else
 
@@ -27,7 +30,7 @@ endif
 
 
 OBJS1 = obj/modplay.o obj/modplay_protracker.o \
-        obj/modplay_s3m.o obj/support.o
+        obj/modplay_s3m.o obj/modplay_oktalyzer.o
 
 OBJS = obj/modplay_main.o $(OBJS1)
 ifeq ($(buildAMIGA),1)
@@ -47,14 +50,14 @@ all: modplay
 endif
 
 # EP plugin, AmiGUS and m68k only (i.e. requires buildAMIGA)
-AGUS_Mod: obj/epheader.o obj/modplay_ep.o obj/modrender_amigus.o $(OBJS1)
-	$(CC) $(CFLAGS) -o $@ obj/epheader.o obj/modplay_ep.o obj/modrender_amigus.o $(OBJS1) -nostdlib
+AGUS_Mod: obj/epheader.o obj/modplay_ep.o obj/modrender_amigus.o obj/patternscroll_convert.o obj/support.o $(OBJS1)
+	$(CC) $(CFLAGS) -o $@ obj/epheader.o obj/modplay_ep.o obj/modrender_amigus.o obj/patternscroll_convert.o obj/support.o $(OBJS1) -nostdlib
 
 modplay: $(OBJS)
-	$(CC) $(CFLAGS) -o $@ $(OBJS) $(LIBS)
+	$(CC) $(CFLAGS) -o $@ $(OBJS) $(LIBS) 
 
 ../bin/modplay_68k: $(OBJS)
-	$(CC) $(CFLAGS) -o $@ $(OBJS) $(LIBS)
+	$(CC) $(CFLAGS) -o $@ $(OBJS) $(LIBS) 
 
 ifeq ($(buildAMIGA),1)
 clean:	
@@ -65,6 +68,9 @@ clean:
 	-rm -f obj/*.o $(OBJS1)
 	-rm -f modplay
 endif
+
+obj/%.o:	%.asm
+	$(VASM) $(VASMFORMAT) $(AFLAGS) $< -o $@
 
 obj/support.o: support.c
 	$(CC) $(CFLAGS) support.c -c -o $@
@@ -87,7 +93,11 @@ obj/modplay_protracker.o: modplay_protracker.c modplay_protracker.h modplay.h
 obj/modplay_s3m.o: modplay_s3m.c modplay_s3m.h modplay.h
 	$(CC) $(CFLAGS) modplay_s3m.c -c -o $@
 
-obj/modplay.o: modplay.c modplay.h
+obj/modplay_oktalyzer.o: modplay_oktalyzer.c modplay_oktalyzer.h modplay.h
+	$(CC) $(CFLAGS) modplay_oktalyzer.c -c -o $@
+
+
+obj/modplay.o: modplay.c modplay.h modplay_tables.h
 	$(CC) $(CFLAGS) modplay.c -c -o $@
 
 obj/modrender_stream.o: modrender_stream.c modrender_common.h

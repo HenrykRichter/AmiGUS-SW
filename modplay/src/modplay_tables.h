@@ -9,12 +9,16 @@
 #define S3M_FINETUNE_STRIDE (12*9+1)
 #define S3M_FINETUNE_IDXMASK 0 /* implicit finetuning */
 
+#define OK_FINETUNE_STRIDE 37
+#define OK_FINETUNE_IDXMASK 0
+
 #ifndef MODPLAY_MAIN
 
 extern const UBYTE PT_Vibrato_Tab[32];
 extern const UWORD MTM_FineTune_Tab_[MTM_FINETUNE_STRIDE];
 extern const UWORD PT_FineTune_Tab_[PT_FINETUNE_STRIDE*(PT_FINETUNE_IDXMASK+1)];
 extern const UWORD S3M_FineTune_Tab_[S3M_FINETUNE_STRIDE];
+extern const UWORD OK_FineTune_Tab_[OK_FINETUNE_STRIDE*(OK_FINETUNE_IDXMASK+1)];
 
 #else
 
@@ -65,6 +69,15 @@ const UWORD MTM_FineTune_Tab_[MTM_FINETUNE_STRIDE] = {
 	42,   40,   37,   35,   33,   31,   30,   28,
 	26,   25,   23,   22,   21,   20,   18,   17,   16,   15,   15,   14,0
 };
+
+const UWORD OK_FineTune_Tab_[OK_FINETUNE_STRIDE*(OK_FINETUNE_IDXMASK+1)] =
+{
+/*  C    C#     D    D#      E     F    F#     G    G#      A    A#     B */
+ 0x358,0x328,0x2FA,0x2D0, 0x2A6,0x280,0x25C,0x23A, 0x21A,0x1FC,0x1E0,0x1C5,
+ 0x1AC,0x194,0x17D,0x168, 0x153,0x140,0x12E,0x11D, 0x10D, 0xFE, 0xF0, 0xE2,
+  0xD6, 0xCA, 0xBE, 0xB4,  0xAA, 0xA0, 0x97, 0x8F,  0x87, 0x7F, 0x78, 0x71,0
+};
+
 
 /* this table is a little different from the original Protracker
    table in an (internally) important detail: It is 0-terminated
